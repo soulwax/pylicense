@@ -224,8 +224,8 @@ def test_main_with_error_handling():
             verbose=True,
         )
 
-        # Simulate an exception
-        mock_apply.side_effect = Exception("Test error")
+        # Simulate a specific exception rather than a general one
+        mock_apply.side_effect = OSError("Test error")
 
         exit_code = main()
         assert exit_code == 1
