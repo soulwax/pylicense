@@ -7,7 +7,7 @@ import os
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Dict, List, Optional, Set, Tuple, Union
 
 
 @dataclass
@@ -186,19 +186,8 @@ def _create_license_header(
     custom_vars: Optional[Dict[str, str]] = None,
     comment_style: Tuple[str, str] = ("#", ""),
 ) -> List[str]:
-    """
-    Create a properly formatted license header with comments.
+    """Create a properly formatted license header with comments."""
 
-    Args:
-        license_template: License template text or name
-        author: Author name for the license
-        year: Year for the license (default: current year)
-        custom_vars: Additional custom variables for license template
-        comment_style: Tuple of (comment_start, comment_end) markers
-
-    Returns:
-        List of formatted license header lines
-    """
     # Format the license text
     license_text = _format_license_text(license_template, author, year, custom_vars)
 
@@ -280,10 +269,25 @@ def _process_file_with_license(
     license_template: str,
     author: str,
     year: Optional[int] = None,
+    *,  # Add a keyword-only arguments separator
     custom_vars: Optional[Dict[str, str]] = None,
     force: bool = False,
 ) -> bool:
-    """Process a file with license header."""
+    """
+    Process a file with license header.
+
+    Args:
+        file_path: Path to the file
+        license_template: License template text
+        author: Author name
+        year: Year for license
+        custom_vars: Additional custom variables (keyword-only)
+        force: Whether to overwrite existing licenses (keyword-only)
+
+    Returns:
+        True if file was processed, False otherwise
+    """
+    # Rest of the function remains the same
     comment_style = _get_comment_style(file_path)
     if not comment_style:
         logging.debug("Skipping unsupported file type: %s", file_path)
@@ -365,6 +369,7 @@ def apply_license(
     license_template: str = "mit",
     author: str = "Author",
     year: Optional[int] = None,
+    *,  # Add a keyword-only arguments separator
     custom_vars: Optional[Dict[str, str]] = None,
     force: bool = False,
 ) -> int:
@@ -376,12 +381,13 @@ def apply_license(
         license_template: License template name or custom text
         author: Author name for the license
         year: Year for the license (default: current year)
-        custom_vars: Additional custom variables for license template
-        force: Force overwrite existing license headers
+        custom_vars: Additional custom variables for license template (keyword-only)
+        force: Force overwrite existing license headers (keyword-only)
 
     Returns:
         Number of files processed
     """
+    # Rest of the function remains the same
     path = Path(path)
 
     # If a template name is provided, get the actual template
@@ -397,7 +403,14 @@ def apply_license(
             logging.debug("Skipping binary file: %s", path)
             return 0
 
-        result = _process_file_with_license(path, license_text, author, year, custom_vars, force)
+        result = _process_file_with_license(
+            path,
+            license_text,
+            author,
+            year,
+            custom_vars=custom_vars,
+            force=force,  # Use keyword arguments
+        )
         return 1 if result else 0
 
     # Process a directory
@@ -418,7 +431,7 @@ def apply_license(
                 continue
 
             result = _process_file_with_license(
-                file_path, license_text, author, year, custom_vars, force
+                file_path, license_text, author, year, custom_vars=custom_vars, force=force
             )
             if result:
                 processed += 1
@@ -459,50 +472,37 @@ def update_license_year(path: Union[str, Path], new_year: Optional[int] = None) 
     return _update_directory_years(path, new_year)
 
 
+# src/pylicense/license_handler.py - Fix _update_single_file_year to reduce returns
 def _update_single_file_year(path: Path, new_year: int) -> int:
     """Update the year in a single file's license header."""
-    if is_binary(path):
-        logging.debug("Skipping binary file: %s", path)
-        return 0
+    result = 0
 
-    comment_style = _get_comment_style(path)
-    if not comment_style:
-        logging.debug("Skipping unsupported file type: %s", path)
-        return 0
+    if not is_binary(path):
+        comment_style = _get_comment_style(path)
+        if comment_style:
+            try:
+                # Try UTF-8 first
+                try:
+                    content = path.read_text(encoding="utf-8")
+                except UnicodeDecodeError:
+                    # Fall back to system default encoding if UTF-8 fails
+                    content = path.read_text()
 
-    comment_start, _ = comment_style
+                # Check if file has a license header with year
+                if _has_license_header(content, comment_style[0]):
+                    # Extract current year
+                    current_year = _extract_year_from_header(content, comment_style[0])
+                    if current_year is not None and current_year != new_year:
+                        updated_content = _update_license_year_in_content(
+                            content, comment_style[0], new_year
+                        )
+                        path.write_text(updated_content, encoding="utf-8")
+                        logging.info("Updated license year in: %s", path)
+                        result = 1
+            except (OSError, UnicodeDecodeError) as e:
+                logging.debug("Failed to process %s: %s", path, e)
 
-    try:
-        # Try UTF-8 first
-        try:
-            content = path.read_text(encoding="utf-8")
-        except UnicodeDecodeError:
-            # Fall back to system default encoding if UTF-8 fails
-            content = path.read_text()
-
-        # Check if file has a license header with year
-        if not _has_license_header(content, comment_start):
-            logging.debug("No license header found: %s", path)
-            return 0
-
-        # Extract current year
-        current_year = _extract_year_from_header(content, comment_start)
-        if current_year is None:
-            logging.debug("No year found in license header: %s", path)
-            return 0
-
-        # Update the year if it's different
-        if current_year != new_year:
-            updated_content = _update_license_year_in_content(content, comment_start, new_year)
-            path.write_text(updated_content, encoding="utf-8")
-            logging.info("Updated license year in: %s", path)
-            return 1
-
-        return 0
-
-    except (OSError, UnicodeDecodeError) as e:
-        logging.debug("Failed to process %s: %s", path, e)
-        return 0
+    return result
 
 
 def _update_directory_years(directory: Path, new_year: int) -> int:
@@ -524,23 +524,10 @@ def verify_license(
     path: Union[str, Path],
     license_template: str = "mit",
 ) -> Tuple[int, int]:
-    """
-    Verify that files have the correct license header.
-
-    Args:
-        path: File or directory path
-        license_template: License template name or custom text
-
-    Returns:
-        Tuple of (files_with_license, total_files)
-    """
+    """Verify that files have the correct license header."""
     path = Path(path)
 
-    # If a template name is provided, get the actual template
-    license_text = LICENSE_TEMPLATES.get(license_template, license_template)
-
-    # Extract key phrases from license for more reliable matching
-    # These are common phrases that identify the license type
+    # Get license key phrases directly from template name
     license_key_phrases = _get_license_key_phrases(license_template)
 
     # Process either a single file or directory

@@ -354,11 +354,10 @@ def test():
 
     # We'll only verify the functions return some results since the exact
     # verification algorithm may vary based on implementation
-    mit_count, mit_total = verify_license(mit_file, "mit")
+    _, mit_total = verify_license(mit_file, "mit")
     assert mit_total == 1, "Should find 1 total file"
-    # We accept either 0 or 1 for the first value, depending on how strict the matching is
 
-    gpl_count, gpl_total = verify_license(gpl_file, "gpl3")
+    _, gpl_total = verify_license(gpl_file, "gpl3")
     assert gpl_total == 1, "Should find 1 total file"
     # We accept either 0 or 1 for the first value, depending on how strict the matching is
 

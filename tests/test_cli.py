@@ -102,7 +102,8 @@ def main():
     return tmp_path
 
 
-def test_main_apply_license(temp_cli_dir):
+@pytest.mark.usefixtures("temp_cli_dir")
+def test_main_apply_license(temp_cli_dir):  # pylint: disable=redefined-outer-name
     """Test main function in apply license mode."""
     with patch("pylicense.cli.parse_args") as mock_parse_args:
         mock_parse_args.return_value = argparse.Namespace(
@@ -127,7 +128,8 @@ def test_main_apply_license(temp_cli_dir):
         assert "Copyright (c) 2023 CLI Test" in js_content
 
 
-def test_main_update_year(temp_cli_dir):
+@pytest.mark.usefixtures("temp_cli_dir")
+def test_main_update_year(temp_cli_dir):  # pylint: disable=redefined-outer-name
     """Test main function in update year mode."""
     with patch("pylicense.cli.parse_args") as mock_parse_args:
         mock_parse_args.return_value = argparse.Namespace(
@@ -149,7 +151,8 @@ def test_main_update_year(temp_cli_dir):
         assert "Copyright (C) 2023 Test" in content
 
 
-def test_main_verify_license(temp_cli_dir):
+@pytest.mark.usefixtures("temp_cli_dir")
+def test_main_verify_license(temp_cli_dir):  # pylint: disable=redefined-outer-name
     """Test main function in verify mode."""
     # Apply a license first
     with patch("pylicense.cli.parse_args") as mock_parse_args:
@@ -184,9 +187,9 @@ def test_main_verify_license(temp_cli_dir):
         assert exit_code == 0
 
 
-def test_main_verify_license_failure(temp_cli_dir):
+@pytest.mark.usefixtures("temp_cli_dir")
+def test_main_verify_license_failure(temp_cli_dir):  # pylint: disable=redefined-outer-name
     """Test main function in verify mode with missing licenses."""
-    # Add a new file without a license
     (temp_cli_dir / "no_license.py").write_text("def no_license(): pass\n")
 
     with patch("pylicense.cli.parse_args") as mock_parse_args:
