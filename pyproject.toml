@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=45", "wheel", "setuptools_scm>=6.2"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
+write_to = "src/pylicense/_version.py"
+
+[tool.black]
+line-length = 100
+target-version = ['py36', 'py37', 'py38', 'py39', 'py310', 'py311']
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+
+[tool.pylint.main]
+ignore-patterns = ["^\\.#", "_version.py$"]
+
+[tool.pylint.messages_control]
+disable = [
+    "C0111", # Missing docstring
+    "R0913", # Too many arguments
+    "R0914", # Too many local variables
+    "C0103", # Invalid name
+    "C0209", # Consider using f-string
+]
+
+[tool.pylint.format]
+max-line-length = 100
+
+[tool.pylint.basic]
+good-names = ["i", "j", "k", "ex", "Run", "_", "fp", "id"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "--cov=pylicense"
+pythonpath = [
+    ".",
+    "src",
+]

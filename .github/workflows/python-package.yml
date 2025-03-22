@@ -1,0 +1,41 @@
+name: Python package
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+          pip install -e .
+      - name: Lint with pylint
+        run: |
+          pylint src/pylicense tests
+      - name: Check formatting with black
+        run: |
+          black --check src/pylicense tests
+      - name: Test with pytest
+        run: |
+          pytest --cov=pylicense tests/
+      - name: Build package
+        run: |
+          python -m build
+      - name: Check package with twine
+        run: |
+          twine check dist/*
